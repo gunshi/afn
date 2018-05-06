@@ -25,7 +25,7 @@ opt = lapp[[
   --lr								(default 0.0001)
   --beta1							(default 0.9)
   --weightDecay       (default 0.0005)
-	--data_dir					(default '/home/satyajittourani/Desktop/deep/kitti-dataset/sequences/')
+	--data_dir					(default '/home/tourani/Desktop/deep/dataset-kitti/sequences')
   --category          (default 'kitti')
 	--resume						(default 0)
 	-d, --debug					(default 0)
@@ -73,6 +73,8 @@ local ntrain = data_sizes[2]
 local ntest = data_sizes[3]
 print("Dataset: " .. opt.dataset .. " nTotal: " .. ntrain+ntest .. " nTrain: " .. ntrain .. " nTest: " .. ntest)
 
+
+
 optimState = {
    learningRate = opt.lr,
    beta1 = opt.beta1,
@@ -88,7 +90,7 @@ if opt.resume > 0 then
 			local loader = torch.load(opt.modelPath .. string.format('/net-epoch-%d.t7', i))
 			net = loader.net
 			loss_list_im = loader.loss_list_im
-			loss_list_map = loader.loss_list_map
+			--loss_list_map = loader.loss_list_map
 			print(opt.modelPath .. string.format('/net-epoch-%d.t7', i))
 			print(string.format('resuming from epoch %d', i))
 			break
@@ -101,14 +103,14 @@ else
 	net = net_module.create(opt)
 	w_init.nngraph(net, 'kaiming')
 	loss_list_im = torch.Tensor(1,1):fill(100)
-	loss_list_map = torch.Tensor(1,1):fill(100)
+	--loss_list_map = torch.Tensor(1,1):fill(100)
 end
 local criterion_im = nn.AbsCriterion()
-local criterion_map = nn.BCECriterion()
+--local criterion_map = nn.BCECriterion()
 if opt.gpu >= 0 then
   net = net:cuda()
 	criterion_im = criterion_im:cuda()
-	criterion_map = criterion_map:cuda()
+	--criterion_map = criterion_map:cuda()
 end
 local parameters, gradParameters = net:getParameters()
 
@@ -121,9 +123,9 @@ local opfunc = function(x)
 	f = net:forward({batch_im_in, batch_view_in})
 	im_err = criterion_im:forward(f[1], batch_im_out)
 	local df_d_im = criterion_im:backward(f[1], batch_im_out)
-	map_err = criterion_map:forward(f[2], batch_map)
-	local df_d_map = criterion_map:backward(f[2], batch_map)
-	net:backward({batch_im_in, batch_view_in}, {df_d_im:mul(2),df_d_map})
+	--map_err = criterion_map:forward(f[2], batch_map)
+	--local df_d_map = criterion_map:backward(f[2], batch_map)
+	--net:backward({batch_im_in, batch_view_in}, {df_d_im:mul(2),df_d_map})
 
 	return 0, gradParameters
 end
@@ -138,14 +140,14 @@ for t = epoch+1, opt.maxEpoch do
 	for i = 1, opt.iter_per_epoch do
 		local iter = i+(t-1)*opt.iter_per_epoch
 		data_tm:reset(); data_tm:resume()
-		batch_im_in, batch_im_out, batch_map, batch_view_in = data:getBatch()
+		batch_im_in, batch_im_out, batch_view_in = data:getBatch()
 		-- make it [0, 1] -> [-1, 1]
 		batch_im_in:mul(2):add(-1)
     batch_im_out:mul(2):add(-1)
 		if opt.gpu >= 0 then
 			batch_im_in = batch_im_in:cuda()
 			batch_im_out = batch_im_out:cuda()
-			batch_map = batch_map:cuda()
+			--batch_map = batch_map:cuda()
 			batch_view_in = batch_view_in:cuda()
 		end
 		data_tm:stop()
@@ -153,11 +155,11 @@ for t = epoch+1, opt.maxEpoch do
 		tm:reset(); tm:resume()
 		optim.adam(opfunc, parameters, optimState)
 		tm:stop()
-		print(string.format('#### epoch (%d)\t iter (%d) \t TrainError(IM/Mask)=(%.4f,%.4f)'
-							.. ' Time: %.3f DataTime: %.3f ', t, iter, im_err, map_err, 
+		print(string.format('#### epoch (%d)\t iter (%d) \t TrainError(IM)=(%.4f)'
+							.. ' Time: %.3f DataTime: %.3f ', t, iter, im_err, 
 							tm:time().real, data_tm:time().real))
 		loss_list_im = torch.cat(loss_list_im, torch.Tensor(1,1):fill(im_err),1)
-		loss_list_map = torch.cat(loss_list_map, torch.Tensor(1,1):fill(map_err),1)
+		--loss_list_map = torch.cat(loss_list_map, torch.Tensor(1,1):fill(map_err),1)
 
 		-- plot 
 		if iter % 250 == 0 then
@@ -170,7 +172,7 @@ for t = epoch+1, opt.maxEpoch do
 				to_plot[(k-1)*5 + 3]:add(1):mul(0.5)
 				to_plot[(k-1)*5 + 4] = batch_im_out[k]
 				to_plot[(k-1)*5 + 4]:add(1):mul(0.5)
-				to_plot[(k-1)*5 + 5] = batch_map[k]:repeatTensor(3,1,1)
+				--to_plot[(k-1)*5 + 5] = batch_map[k]:repeatTensor(3,1,1)
 			end
 			formatted = image.toDisplayTensor({input=to_plot, nrow = 5})
 			image.save((opt.modelPath .. '/training/' .. 
@@ -183,7 +185,8 @@ for t = epoch+1, opt.maxEpoch do
 			collectgarbage()
 			parameters, gradParameters = nil, nil
 			torch.save(opt.modelPath .. string.format('/net-epoch-%d.t7', t),
-				{net = net:clearState(), loss_list_im = loss_list_im, loss_list_map = loss_list_map})
+				{net = net:clearState(), loss_list_im = loss_list_im})
 			parameters, gradParameters = net:getParameters()
   end
 end
+

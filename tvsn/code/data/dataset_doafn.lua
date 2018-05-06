@@ -15,6 +15,25 @@ local ffi = require 'ffi'
 
 local dataset = torch.class('dataLoader')
 
+function fixFormat(x)
+if x==0 then return string.format("000000") end
+
+local temp = x
+local c = 0
+while temp >= 1 do
+	temp = temp / 10
+	c = c + 1
+end
+
+c = c + 1
+local ret = "0"
+while c < 6 do
+	ret = ret .. '0'
+	c = c + 1
+end
+
+return (ret .. tostring(x))
+end
 
 function dataset:__init(data_dir, category, loadSize, split, background)
 	 self.data_dir = data_dir
@@ -43,8 +62,8 @@ function dataset:sample(quantity)
 			--		 1, self.loadSize[2], self.loadSize[3])
    local trans = torch.Tensor(quantity,10)
    for i=1,quantity do
-      local out1, out2, map, transform = self:get()
-      data1[i]:copy(out1)
+      local out1, out2, transform = self:get()
+      data1[i]:copy(out1)	
       data2[i]:copy(out2)
      -- maps[i][1]:copy(map)
 			trans[i]:copy(transform)
@@ -62,13 +81,12 @@ function dataset:get()
 		model_id = self.metadata.test_indices[torch.random(self.metadata.n_test)]
 	end
 
-	local src_theta_id = torch.random(self.n_frames) 
-	local src_theta = (src_theta_id-1)*self.theta_inc
+	local src_frame = 12
 	local transform_id = torch.random(10)
 	local one_hot = torch.zeros(10)
 	one_hot:scatter(1,torch.LongTensor{transform_id},1)
 
-	local dst_frame = scr_frame + transform_id
+	local dst_frame = src_frame + transform_id
 
 	--TODO: Fix corner cases.
 	--if dst_theta < 0 then
@@ -81,16 +99,16 @@ function dataset:get()
 	local model_name = ffi.string(torch.data(self.metadata.models[model_id]))
 	-- TODO: add a function to pass the string in proper way. 	
 	local imgpath1 = self.data_dir .. '/' .. model_name .. 
-			'/02/' .. string.format('00000%d.png',src_theta)
-	local imgpath2 = self.data_dir .. self.category .. '/' .. model_name .. 
-			'/02/' .. string.format('00000%d.png',dst_theta)
+			'/image_0/' .. fixFormat(src_frame) .. '.png'
+	local imgpath2 = self.data_dir .. '/' .. model_name .. 
+			'/image_0/' .. fixFormat(dst_frame) .. '.png'
 	local im1 = self:sampleHookTrain(imgpath1)
 	local im2 = self:sampleHookTrain(imgpath2)
 	local im1_rgb, im2_rgb
 	--local map = self.maps[self.map_indices[model_name]][phi_id][src_theta_id][transform_id]
 	--map = image.scale(map,self.loadSize[2], self.loadSize[2])
 	--map = map:gt(0.3)
-	if self.background == 1 then
+	 if self.background == 1 then
 		-- rgba -> rgb with random background
 		im1_rgb = im1[{{1,3},{},{}}]
 		im2_rgb = im2[{{1,3},{},{}}]
@@ -117,6 +135,7 @@ function dataset:get()
 		im1_rgb:cmul(alpha1):add(1-alpha1)
 		im2_rgb:cmul(alpha2):add(1-alpha2)
 	end
+
 	return im1_rgb,im2_rgb,one_hot
 end
 
