@@ -1,5 +1,5 @@
 # afn
-making changes to https://github.com/silverbottlep/tvsn. working on kitti dataset. 
+making changes to https://github.com/silverbottlep/tvsn. trying to make it work on kitti dataset. 
 refer to the original repo above and link kitti dataset in a similar manner. (0th step)
 Skip steps 1 and 2.
 
