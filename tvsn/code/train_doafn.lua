@@ -25,7 +25,7 @@ opt = lapp[[
   --lr								(default 0.0001)
   --beta1							(default 0.9)
   --weightDecay       (default 0.0005)
-	--data_dir					(default '/home/tourani/Desktop/deep/dataset-kitti/sequences')
+	--data_dir					(default '/scratch/junaidcs032/kitti/sequences')
   --category          (default 'kitti')
 	--resume						(default 0)
 	-d, --debug					(default 0)
@@ -74,7 +74,6 @@ local ntest = data_sizes[3]
 print("Dataset: " .. opt.dataset .. " nTotal: " .. ntrain+ntest .. " nTrain: " .. ntrain .. " nTest: " .. ntest)
 
 
-
 optimState = {
    learningRate = opt.lr,
    beta1 = opt.beta1,
@@ -101,6 +100,10 @@ else
 	print('creating model...')
 	local net_module = dofile('models/' .. string.format('%s_%s.lua', opt.modelString, opt.imgscale))
 	net = net_module.create(opt)
+	print('opt')
+	print(opt)
+	print('net')	
+	print(net)
 	w_init.nngraph(net, 'kaiming')
 	loss_list_im = torch.Tensor(1,1):fill(100)
 	--loss_list_map = torch.Tensor(1,1):fill(100)

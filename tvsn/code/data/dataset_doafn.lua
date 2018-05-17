@@ -97,11 +97,13 @@ function dataset:get()
 
 	--source image and target image
 	local model_name = ffi.string(torch.data(self.metadata.models[model_id]))
+	print("model name")
+	print(model_name)
 	-- TODO: add a function to pass the string in proper way. 	
 	local imgpath1 = self.data_dir .. '/' .. model_name .. 
-			'/image_0/' .. fixFormat(src_frame) .. '.png'
+			'/image_2/' .. fixFormat(src_frame) .. '.png'
 	local imgpath2 = self.data_dir .. '/' .. model_name .. 
-			'/image_0/' .. fixFormat(dst_frame) .. '.png'
+			'/image_2/' .. fixFormat(dst_frame) .. '.png'
 	local im1 = self:sampleHookTrain(imgpath1)
 	local im2 = self:sampleHookTrain(imgpath2)
 	local im1_rgb, im2_rgb
@@ -126,14 +128,17 @@ function dataset:get()
 		local bg_temp = (1-alpha2):cmul(bg)
 		im2_rgb:cmul(alpha2):add(bg_temp)
 	else
+
+              
 		-- rgba -> rgb with white background
 		im1_rgb = im1[{{1,3},{},{}}]
 		im2_rgb = im2[{{1,3},{},{}}]
-		local alpha1 = im1[4]:repeatTensor(3,1,1)
-		local alpha2 = im2[4]:repeatTensor(3,1,1)
+               
+		--local alpha1 = im1[4]:repeatTensor(3,1,1)
+		--local alpha2 = im2[4]:repeatTensor(3,1,1)
 
-		im1_rgb:cmul(alpha1):add(1-alpha1)
-		im2_rgb:cmul(alpha2):add(1-alpha2)
+		--im1_rgb:cmul(alpha1):add(1-alpha1)
+		--im2_rgb:cmul(alpha2):add(1-alpha2)
 	end
 
 	return im1_rgb,im2_rgb,one_hot
